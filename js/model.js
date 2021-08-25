@@ -12,9 +12,11 @@ export const getData = async function () {
 		const res = await fetch(
 			`${URL}?apiKey=${API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`,
 		);
-		const [data] = await res.json();
+		console.log(
+			`${URL}?apiKey=${API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`,
+		);
+		const data = await res.json();
 		gameState.questionData = data;
-		console.log(data);
 		return res;
 	} catch (err) {
 		throw err;

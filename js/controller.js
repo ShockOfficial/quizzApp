@@ -28,10 +28,14 @@ const controlStart = async (questionAmount) => {
 	try {
 		gameState.questionAmount = questionAmount;
 
+		// LOAD SPINNER
+
 		const { ok: status } = await getData();
 		if (!status) throw new Error('Cannot load questions from server');
 
 		gameView.render(gameState);
+		console.log(gameState);
+		gameView.addHandlerAnswer(controllAnswer);
 		gameView.addHanlderBack(controlBack);
 	} catch (err) {
 		// TEMP ERROR
@@ -42,6 +46,23 @@ const controlStart = async (questionAmount) => {
 const controlBack = () => {
 	mainView.render();
 	init();
+};
+
+const controllAnswer = (clickedAnswer) => {
+	let correctAnswer;
+	const currentQuestion = gameState.questionData[gameState.currentQuestion - 1];
+
+	Object.entries(currentQuestion.correct_answers).forEach((el, i) => {
+		if (el[1] === 'true') {
+			correctAnswer = el[0].slice(7, 8).toUpperCase();
+		}
+	});
+	if (correctAnswer === clickedAnswer) {
+		console.log('SUPER! POPRAWNIE');
+	} else {
+		console.log('NIEPOPRAWNIE');
+	}
+	// gameState.currentQuestion++;
 };
 
 const init = () => {

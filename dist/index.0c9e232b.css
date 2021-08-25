@@ -195,9 +195,14 @@ body {
   grid-row: 2/3;
   grid-column: 1/-1;
 }
+.main__answers-box {
+  grid-column: 1/-1;
+  width: 100%;
+}
 .main__question {
   text-align: center;
   word-wrap: break-word;
+  user-select: none;
   font-size: 3rem;
 }
 .main__option {
@@ -210,6 +215,7 @@ body {
   border-radius: 1rem;
   font-size: 2.2rem;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  user-select: none;
   padding: 2rem;
   cursor: pointer;
 }
@@ -230,6 +236,12 @@ body {
 }
 .main__option--five {
   background-color: #f32786;
+}
+.main__option--six {
+  background-color: #134bc4;
+}
+.main__option--seven {
+  background-color: #4ffa39;
 }
 .main__answer {
   display: block;

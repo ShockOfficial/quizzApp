@@ -479,9 +479,12 @@ const controlActive = (e, categoryList, categoryParent)=>{
 const controlStart = async (questionAmount)=>{
     try {
         _modelJs.gameState.questionAmount = questionAmount;
+        // LOAD SPINNER
         const { ok: status  } = await _modelJs.getData();
         if (!status) throw new Error('Cannot load questions from server');
         _gameViewJsDefault.default.render(_modelJs.gameState);
+        console.log(_modelJs.gameState);
+        _gameViewJsDefault.default.addHandlerAnswer(controllAnswer);
         _gameViewJsDefault.default.addHanlderBack(controlBack);
     } catch (err) {
         // TEMP ERROR
@@ -491,6 +494,16 @@ const controlStart = async (questionAmount)=>{
 const controlBack = ()=>{
     _mainViewJsDefault.default.render();
     init();
+};
+const controllAnswer = (clickedAnswer)=>{
+    let correctAnswer;
+    const currentQuestion = _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1];
+    Object.entries(currentQuestion.correct_answers).forEach((el, i)=>{
+        if (el[1] === 'true') correctAnswer = el[0].slice(7, 8).toUpperCase();
+    });
+    if (correctAnswer === clickedAnswer) console.log('SUPER! POPRAWNIE');
+    else console.log('NIEPOPRAWNIE');
+// gameState.currentQuestion++;
 };
 const init = ()=>{
     _mainViewJsDefault.default.addHandlerActive(controlActive);
@@ -589,9 +602,12 @@ class GameView {
         'two',
         'three',
         'four',
-        'five'
+        'five',
+        'six',
+        'seven'
     ];
     _data;
+    _correctAnswer;
     render(data) {
         this._data = data;
         this._parentElement.innerHTML = '';
@@ -608,16 +624,31 @@ class GameView {
     _generateMarkup() {
         // Randomize colors
         this._shuffleArray(this._colorsArray);
-        const answers = this.data.questionData.answers;
-        return `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">${this._data.questionData.question}</p>\n    </div>\n\n    <div class="main__option main__option--${this._colorsArray[0]}">\n      <span class="main__answer-opt"> A.</span>\n      <span class="main__answer" data-odp="a">Odpowiedź jeden</span>\n    </div>\n    <div class="main__option main__option--${this._colorsArray[1]}">\n      <span class="main__answer-opt"> B.</span>\n      <span class="main__answer" data-odp="b">Odpowiedź jeden</span>\n    </div>\n    <div class="main__option main__option--${this._colorsArray[2]}">\n      <span class="main__answer-opt"> C.</span>\n      <span class="main__answer" data-odp="c">Odpowiedź jeden</span>\n    </div>\n    <div class="main__option main__option--${this._colorsArray[3]}">\n      <span class="main__answer-opt"> D.</span>\n      <span class="main__answer" data-odp="d">Odpowiedź jeden</span>\n    </div>\n  </div>`;
+        const answers = Object.entries(this._data.questionData[this._data.currentQuestion - 1].answers);
+        const baseHTML = `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">${this._data.questionData[this._data.currentQuestion - 1].question}</p>\n    </div>\n    <div class="main__answers-box">\n   `;
+        let answerHTML = ``;
+        answers.forEach((el, i)=>{
+            answerHTML += this._generateAnswerMarkup(el, i);
+        });
+        answerHTML += `</div> </div>`;
+        return baseHTML + answerHTML;
     }
-    _generateAnswerMarkup(answer) {
+    _generateAnswerMarkup(answer, index) {
         const ansOption = answer[0].slice(-1).toUpperCase();
-        return `\n      <div class="main__option main__option--${this._colorsArray[0]}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer" data-odp="${ansOption}">${asnwer[1]}</span>\n      </div>`;
+        if (!answer[1]) return '';
+        return `\n      <div class="main__option main__option--${this._colorsArray[index]}" data-ans="${ansOption}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer">${answer[1]}</span>\n      </div>`;
     }
     addHanlderBack(handler) {
         const btnBack = document.querySelector('.main__btn-back ');
         btnBack.addEventListener('click', handler);
+    }
+    addHandlerAnswer(handler) {
+        const answerBox = document.querySelector('.main__answers-box');
+        answerBox.addEventListener('click', function(e) {
+            const answer = e.target.closest('.main__option');
+            if (!answer) return;
+            handler(answer.dataset.ans);
+        });
     }
 }
 exports.default = new GameView();
@@ -639,9 +670,9 @@ const gameState = {
 const getData = async function() {
     try {
         const res = await fetch(`${_config.URL}?apiKey=${_config.API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`);
-        const [data] = await res.json();
+        console.log(`${_config.URL}?apiKey=${_config.API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`);
+        const data = await res.json();
         gameState.questionData = data;
-        console.log(data);
         return res;
     } catch (err) {
         throw err;
