@@ -249,6 +249,20 @@ body {
   word-wrap: break-word;
 }
 
+.hidden {
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.correct {
+  background-color: #2ecc71;
+}
+
+.wrong {
+  background-color: #c0392b;
+}
+
 .active {
   background-color: #6a4fec;
   transform: translateY(-4px);

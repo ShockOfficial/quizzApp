@@ -2,7 +2,7 @@ class GameView {
 	_parentElement = document.querySelector('.main');
 	_colorsArray = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'];
 	_data;
-	_correctAnswer;
+	_clickedAnswer;
 
 	render(data) {
 		this._data = data;
@@ -39,9 +39,11 @@ class GameView {
 			this._data.questionAmount
 		}</p>
     <div class="main__question-box">
-      <p class="main__question">${
-				this._data.questionData[this._data.currentQuestion - 1].question
-			}</p>
+      <p class="main__question">
+      ${this._data.questionData[this._data.currentQuestion - 1].question
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')}
+      </p>
     </div>
     <div class="main__answers-box">
    `;
@@ -63,10 +65,23 @@ class GameView {
 		if (!answer[1]) return '';
 
 		return `
-      <div class="main__option main__option--${this._colorsArray[index]}" data-ans="${ansOption}">
+      <div class="main__option main__option--${
+				this._colorsArray[index]
+			}" data-ans="${ansOption}">
         <span class="main__answer-opt"> ${ansOption}.</span>
-        <span class="main__answer">${answer[1]}</span>
+        <span class="main__answer">${answer[1]
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')}</span>
       </div>`;
+	}
+
+	setAnswersColor(correctData) {
+		const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
+		const answers = document.querySelectorAll('.main__option');
+
+		answers.forEach((el) => el.classList.add('wrong'));
+		correctEl.classList.remove('wrong');
+		correctEl.classList.add('correct');
 	}
 
 	addHanlderBack(handler) {
@@ -79,10 +94,14 @@ class GameView {
 
 		answerBox.addEventListener('click', function (e) {
 			const answer = e.target.closest('.main__option');
+			this._clickedAnswer = answer;
 
 			if (!answer) return;
 
 			handler(answer.dataset.ans);
+
+			// Way to delete event listener
+			answerBox.replaceWith(answerBox.cloneNode(true));
 		});
 	}
 }

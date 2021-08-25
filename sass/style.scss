@@ -175,6 +175,19 @@ body {
 		padding: 1rem;
 	}
 
+	// &__btn-next {
+	// 	grid-column: 3/4;
+	// 	padding: 2.5rem;
+	// }
+
+	// &__next-icon {
+	// 	font-size: 3rem;
+	// 	color: #fdfafa;
+	// 	background-color: $color-primary;
+	// 	border-radius: 0.7rem;
+	// 	padding: 1rem;
+	// }
+
 	&__category {
 		grid-row: 1/ 2;
 		grid-column: 2/ 3;
@@ -275,6 +288,20 @@ body {
 		width: 90%;
 		word-wrap: break-word;
 	}
+}
+
+.hidden {
+	display: none;
+	opacity: 0;
+	visibility: hidden;
+}
+
+.correct {
+	background-color: $color-correct;
+}
+
+.wrong {
+	background-color: $color-wrong;
 }
 
 .active {

@@ -461,10 +461,16 @@ var _mainViewJsDefault = parcelHelpers.interopDefault(_mainViewJs);
 var _gameViewJs = require("./views/gameView.js");
 var _gameViewJsDefault = parcelHelpers.interopDefault(_gameViewJs);
 var _modelJs = require("./model.js");
+var _configJs = require("./config.js");
 // https://quizapi.io/docs/1.0/overview#request-parameters
 // if (module.hot) {
 // 	module.hot.accept();
 // }
+const wait = async function(ms) {
+    return new Promise((resolve)=>{
+        setTimeout(resolve, ms);
+    });
+};
 const controlActive = (e, categoryList, categoryParent)=>{
     const cat = e.target.closest('.main__item');
     // Guard class
@@ -484,8 +490,7 @@ const controlStart = async (questionAmount)=>{
         if (!status) throw new Error('Cannot load questions from server');
         _gameViewJsDefault.default.render(_modelJs.gameState);
         console.log(_modelJs.gameState);
-        _gameViewJsDefault.default.addHandlerAnswer(controllAnswer);
-        _gameViewJsDefault.default.addHanlderBack(controlBack);
+        refreshGameHandler();
     } catch (err) {
         // TEMP ERROR
         console.error(err);
@@ -495,15 +500,30 @@ const controlBack = ()=>{
     _mainViewJsDefault.default.render();
     init();
 };
-const controllAnswer = (clickedAnswer)=>{
+const controllAnswer = async (clickedAnswer)=>{
     let correctAnswer;
     const currentQuestion = _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1];
     Object.entries(currentQuestion.correct_answers).forEach((el, i)=>{
         if (el[1] === 'true') correctAnswer = el[0].slice(7, 8).toUpperCase();
     });
-    if (correctAnswer === clickedAnswer) console.log('SUPER! POPRAWNIE');
-    else console.log('NIEPOPRAWNIE');
-// gameState.currentQuestion++;
+    if (correctAnswer === clickedAnswer) // Add correct flag to the question object
+    _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1].correct = true;
+    else {
+        _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1].correct = false;
+        console.log('NIEPOPRAWNIE');
+    }
+    _gameViewJsDefault.default.setAnswersColor(correctAnswer);
+    _modelJs.gameState.currentQuestion++;
+    // Wait and reneder another question.
+    if (_modelJs.gameState.currentQuestion <= _modelJs.gameState.questionAmount) {
+        await wait(_configJs.TIME_TO_NEXT_QUESTION);
+        _gameViewJsDefault.default.render(_modelJs.gameState);
+        refreshGameHandler();
+    }
+};
+const refreshGameHandler = ()=>{
+    _gameViewJsDefault.default.addHandlerAnswer(controllAnswer);
+    _gameViewJsDefault.default.addHanlderBack(controlBack);
 };
 const init = ()=>{
     _mainViewJsDefault.default.addHandlerActive(controlActive);
@@ -511,7 +531,7 @@ const init = ()=>{
 };
 init();
 
-},{"./views/mainView.js":"d5SRH","@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./views/gameView.js":"cOp1n","./model.js":"7gFI5"}],"d5SRH":[function(require,module,exports) {
+},{"./views/mainView.js":"d5SRH","@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./views/gameView.js":"cOp1n","./model.js":"7gFI5","./config.js":"kjqCk"}],"d5SRH":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 class MainView {
@@ -607,7 +627,7 @@ class GameView {
         'seven'
     ];
     _data;
-    _correctAnswer;
+    _clickedAnswer;
     render(data) {
         this._data = data;
         this._parentElement.innerHTML = '';
@@ -625,7 +645,7 @@ class GameView {
         // Randomize colors
         this._shuffleArray(this._colorsArray);
         const answers = Object.entries(this._data.questionData[this._data.currentQuestion - 1].answers);
-        const baseHTML = `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">${this._data.questionData[this._data.currentQuestion - 1].question}</p>\n    </div>\n    <div class="main__answers-box">\n   `;
+        const baseHTML = `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">\n      ${this._data.questionData[this._data.currentQuestion - 1].question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}\n      </p>\n    </div>\n    <div class="main__answers-box">\n   `;
         let answerHTML = ``;
         answers.forEach((el, i)=>{
             answerHTML += this._generateAnswerMarkup(el, i);
@@ -636,7 +656,15 @@ class GameView {
     _generateAnswerMarkup(answer, index) {
         const ansOption = answer[0].slice(-1).toUpperCase();
         if (!answer[1]) return '';
-        return `\n      <div class="main__option main__option--${this._colorsArray[index]}" data-ans="${ansOption}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer">${answer[1]}</span>\n      </div>`;
+        return `\n      <div class="main__option main__option--${this._colorsArray[index]}" data-ans="${ansOption}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer">${answer[1].replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>\n      </div>`;
+    }
+    setAnswersColor(correctData) {
+        const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
+        const answers = document.querySelectorAll('.main__option');
+        answers.forEach((el)=>el.classList.add('wrong')
+        );
+        correctEl.classList.remove('wrong');
+        correctEl.classList.add('correct');
     }
     addHanlderBack(handler) {
         const btnBack = document.querySelector('.main__btn-back ');
@@ -646,8 +674,11 @@ class GameView {
         const answerBox = document.querySelector('.main__answers-box');
         answerBox.addEventListener('click', function(e) {
             const answer = e.target.closest('.main__option');
+            this._clickedAnswer = answer;
             if (!answer) return;
             handler(answer.dataset.ans);
+            // Way to delete event listener
+            answerBox.replaceWith(answerBox.cloneNode(true));
         });
     }
 }
@@ -686,8 +717,11 @@ parcelHelpers.export(exports, "API_KEY", ()=>API_KEY
 );
 parcelHelpers.export(exports, "URL", ()=>URL1
 );
+parcelHelpers.export(exports, "TIME_TO_NEXT_QUESTION", ()=>TIME_TO_NEXT_QUESTION
+);
 const API_KEY = 'LNXxGa78iJDbyQcJFpzEGX1QnsKk4xnCXuNrQRUl';
 const URL1 = 'https://quizapi.io/api/v1/questions';
+const TIME_TO_NEXT_QUESTION = 3000;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}]},["QbuC7","bJleg"], "bJleg", "parcelRequiree238")
 

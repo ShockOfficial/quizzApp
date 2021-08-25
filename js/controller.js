@@ -1,12 +1,19 @@
 import mainView from './views/mainView.js';
 import gameView from './views/gameView.js';
 import { gameState, getData } from './model.js';
+import { TIME_TO_NEXT_QUESTION } from './config.js';
 
 // https://quizapi.io/docs/1.0/overview#request-parameters
 
 // if (module.hot) {
 // 	module.hot.accept();
 // }
+
+const wait = async function (ms) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+};
 
 const controlActive = (e, categoryList, categoryParent) => {
 	const cat = e.target.closest('.main__item');
@@ -35,8 +42,7 @@ const controlStart = async (questionAmount) => {
 
 		gameView.render(gameState);
 		console.log(gameState);
-		gameView.addHandlerAnswer(controllAnswer);
-		gameView.addHanlderBack(controlBack);
+		refreshGameHandler();
 	} catch (err) {
 		// TEMP ERROR
 		console.error(err);
@@ -48,7 +54,7 @@ const controlBack = () => {
 	init();
 };
 
-const controllAnswer = (clickedAnswer) => {
+const controllAnswer = async (clickedAnswer) => {
 	let correctAnswer;
 	const currentQuestion = gameState.questionData[gameState.currentQuestion - 1];
 
@@ -58,11 +64,30 @@ const controllAnswer = (clickedAnswer) => {
 		}
 	});
 	if (correctAnswer === clickedAnswer) {
-		console.log('SUPER! POPRAWNIE');
+		// Add correct flag to the question object
+		gameState.questionData[gameState.currentQuestion - 1].correct = true;
+
+		// Set the color of the element to green
 	} else {
+		gameState.questionData[gameState.currentQuestion - 1].correct = false;
 		console.log('NIEPOPRAWNIE');
 	}
-	// gameState.currentQuestion++;
+	gameView.setAnswersColor(correctAnswer);
+	gameState.currentQuestion++;
+
+	// Wait and reneder another question.
+	if (gameState.currentQuestion <= gameState.questionAmount) {
+		await wait(TIME_TO_NEXT_QUESTION);
+		gameView.render(gameState);
+		refreshGameHandler();
+	} else {
+		// RESULT VIEW
+	}
+};
+
+const refreshGameHandler = () => {
+	gameView.addHandlerAnswer(controllAnswer);
+	gameView.addHanlderBack(controlBack);
 };
 
 const init = () => {
