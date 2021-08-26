@@ -460,17 +460,15 @@ var _mainViewJs = require("./views/mainView.js");
 var _mainViewJsDefault = parcelHelpers.interopDefault(_mainViewJs);
 var _gameViewJs = require("./views/gameView.js");
 var _gameViewJsDefault = parcelHelpers.interopDefault(_gameViewJs);
+var _resultViewJs = require("./views/resultView.js");
+var _resultViewJsDefault = parcelHelpers.interopDefault(_resultViewJs);
 var _modelJs = require("./model.js");
 var _configJs = require("./config.js");
+var _helpersJs = require("./helpers.js");
 // https://quizapi.io/docs/1.0/overview#request-parameters
 // if (module.hot) {
 // 	module.hot.accept();
 // }
-const wait = async function(ms) {
-    return new Promise((resolve)=>{
-        setTimeout(resolve, ms);
-    });
-};
 const controlActive = (e, categoryList, categoryParent)=>{
     const cat = e.target.closest('.main__item');
     // Guard class
@@ -486,44 +484,80 @@ const controlStart = async (questionAmount)=>{
     try {
         _modelJs.gameState.questionAmount = questionAmount;
         // LOAD SPINNER
-        const { ok: status  } = await _modelJs.getData();
-        if (!status) throw new Error('Cannot load questions from server');
+        _mainViewJsDefault.default.renderSpinner();
+        // const { ok: status } = await getData();
+        // if (!status) throw new Error('Cannot load questions from server');
+        _modelJs.gameState.questionData = [_modelJs.testOBJ];
         _gameViewJsDefault.default.render(_modelJs.gameState);
-        console.log(_modelJs.gameState);
         refreshGameHandler();
     } catch (err) {
-        // TEMP ERROR
-        console.error(err);
+        _mainViewJsDefault.default.removeSpinner();
+        _mainViewJsDefault.default.renderError(err.message);
+        await _helpersJs.wait(4000);
+        _mainViewJsDefault.default.removeError();
     }
 };
 const controlBack = ()=>{
+    _modelJs.resetGameState();
     _mainViewJsDefault.default.render();
     init();
 };
-const controllAnswer = async (clickedAnswer)=>{
-    let correctAnswer;
+const controlselectAnswers = function(clickedAnswer) {
+    // Add / remove selected class on answer
+    _gameViewJsDefault.default.toggleSelectedClass(clickedAnswer);
+    // Add or remove answer from array
+    if (_modelJs.gameState.selectedAnswers.includes(clickedAnswer)) {
+        // Find index of proper answer
+        const index = _modelJs.gameState.selectedAnswers.findIndex((el)=>el === clickedAnswer
+        );
+        // remove
+        _modelJs.gameState.selectedAnswers.splice(index, 1);
+    } else _modelJs.gameState.selectedAnswers.push(clickedAnswer);
+};
+const controlCheckButton = ()=>{
+    controllAnswer(_modelJs.gameState.selectedAnswers, true);
+};
+const controllAnswer = async (clickedAnswer, multi = false)=>{
+    const correctAnswers = [];
     const currentQuestion = _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1];
+    // Push correct answers to the array
     Object.entries(currentQuestion.correct_answers).forEach((el, i)=>{
-        if (el[1] === 'true') correctAnswer = el[0].slice(7, 8).toUpperCase();
+        if (el[1] === 'true') correctAnswers.push(el[0].slice(7, 8).toUpperCase());
     });
-    if (correctAnswer === clickedAnswer) // Add correct flag to the question object
-    _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1].correct = true;
-    else {
-        _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1].correct = false;
-        console.log('NIEPOPRAWNIE');
+    if (multi) {
+        correctAnswers.sort();
+        clickedAnswer.sort();
     }
-    _gameViewJsDefault.default.setAnswersColor(correctAnswer);
+    if (correctAnswers.join('') === clickedAnswer.join('')) {
+        // Add correct flag to the question object
+        currentQuestion.correct = true;
+        _modelJs.gameState.correctAnsCounter++;
+    // Set the color of the element to green
+    } else currentQuestion.correct = false;
+    _gameViewJsDefault.default.setAnswersColor(correctAnswers);
+    // Add player answer to questionData
+    const playerAns = clickedAnswer.flatMap((el)=>{
+        const output = `answer_${el.toLowerCase()}`;
+        return output;
+    });
+    _modelJs.gameState.questionData[_modelJs.gameState.currentQuestion - 1].playerAnswer = playerAns;
     _modelJs.gameState.currentQuestion++;
     // Wait and reneder another question.
     if (_modelJs.gameState.currentQuestion <= _modelJs.gameState.questionAmount) {
-        await wait(_configJs.TIME_TO_NEXT_QUESTION);
+        await _helpersJs.wait(_configJs.TIME_TO_NEXT_QUESTION);
         _gameViewJsDefault.default.render(_modelJs.gameState);
         refreshGameHandler();
+    } else {
+        _resultViewJsDefault.default.render(_modelJs.gameState);
+        _resultViewJsDefault.default.addHanlderBack(controlBack);
+    // RESULT VIEW
     }
 };
 const refreshGameHandler = ()=>{
-    _gameViewJsDefault.default.addHandlerAnswer(controllAnswer);
+    _gameViewJsDefault.default.addHandlerAnswer(controllAnswer, controlselectAnswers);
+    _gameViewJsDefault.default.addHandlerButton(controlCheckButton);
     _gameViewJsDefault.default.addHanlderBack(controlBack);
+    _modelJs.gameState.selectedAnswers = [];
 };
 const init = ()=>{
     _mainViewJsDefault.default.addHandlerActive(controlActive);
@@ -531,10 +565,12 @@ const init = ()=>{
 };
 init();
 
-},{"./views/mainView.js":"d5SRH","@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./views/gameView.js":"cOp1n","./model.js":"7gFI5","./config.js":"kjqCk"}],"d5SRH":[function(require,module,exports) {
+},{"./views/mainView.js":"d5SRH","@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./views/gameView.js":"cOp1n","./model.js":"7gFI5","./config.js":"kjqCk","./helpers.js":"e6FKD","./views/resultView.js":"ceKVf"}],"d5SRH":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-class MainView {
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+class MainView extends _viewDefault.default {
     _parentElement = document.querySelector('.main');
     _categoryList = document.querySelectorAll('.main__item');
     _categoryParent = document.querySelector('.main__cat-list');
@@ -545,12 +581,8 @@ class MainView {
         this._parentElement = document.querySelector('.main');
         this._categoryParent = document.querySelector('.main__cat-list');
     }
-    _renderError() {
-        // Temp error;
-        console.log(this._errorMessage);
-    }
     _generateMarkup() {
-        const html = `<div class="main__category-box">\n    <h2 class="main__category-title">Chose category</h2>\n    <ul class="main__cat-list">\n      <li class="main__item active" data-cat="linux">\n        <div class="main__item-box">\n          <i class="icofont-brand-linux main__item-img"></i>\n          <p class="main__item-title">Linux</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="programming">\n        <div class="main__item-box">\n          <i class="icofont-code-alt main__item-img"></i>\n          <p class="main__item-title">Programming</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="devops">\n        <div class="main__item-box">\n          <i class="icofont-options main__item-img"></i>\n          <p class="main__item-title">DevOps</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="networking">\n        <div class="main__item-box">\n          <i class="icofont-network main__item-img"></i>\n\n          <p class="main__item-title">Networing</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="docker">\n        <div class="main__item-box">\n          <i class="icofont-console main__item-img"></i>\n          <p class="main__item-title">Docker</p>\n        </div>\n      </li>\n    </ul>\n  </div>\n\n  <form class="main__form">\n    <label for="quantity" class="main__form-label"\n      >Set amount of questions</label\n    >\n    <input\n      class="main__input"\n      type="number"\n      id="quantity"\n      name="quantity"\n      min="1"\n      max="25"\n    />\n    <button type="submit" class="main__btn-start btn">START</button>\n  </form>`;
+        const html = `<div class="main__category-box">\n    <h2 class="main__category-title">Chose category</h2>\n    <ul class="main__cat-list">\n      <li class="main__item active" data-cat="linux">\n        <div class="main__item-box">\n          <i class="icofont-brand-linux main__item-img"></i>\n          <p class="main__item-title">Linux</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="code">\n        <div class="main__item-box">\n          <i class="icofont-code-alt main__item-img"></i>\n          <p class="main__item-title">Programming</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="devops">\n        <div class="main__item-box">\n          <i class="icofont-options main__item-img"></i>\n          <p class="main__item-title">DevOps</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="sql">\n        <div class="main__item-box">\n          <i class="icofont-database main__item-img"></i>\n\n          <p class="main__item-title">SQL</p>\n        </div>\n      </li>\n      <li class="main__item" data-cat="docker">\n        <div class="main__item-box">\n          <i class="icofont-console main__item-img"></i>\n          <p class="main__item-title">Docker</p>\n        </div>\n      </li>\n    </ul>\n  </div>\n\n  <form class="main__form">\n    <label for="quantity" class="main__form-label"\n      >Set amount of questions</label\n    >\n    <input\n      class="main__input"\n      type="number"\n      id="quantity"\n      name="quantity"\n      min="1"\n      max="25"\n    />\n    <button type="submit" class="main__btn-start btn">START</button>\n  </form>`;
         return html;
     }
     removeActiveClass(elements) {
@@ -580,7 +612,7 @@ class MainView {
 }
 exports.default = new MainView();
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}],"JacNc":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./view":"5ALGj"}],"JacNc":[function(require,module,exports) {
 exports.interopDefault = function(a) {
     return a && a.__esModule ? a : {
         default: a
@@ -612,10 +644,34 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"cOp1n":[function(require,module,exports) {
+},{}],"5ALGj":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-class GameView {
+class View {
+    renderSpinner() {
+        this._parentElement.insertAdjacentHTML('beforeend', '<div class="main__loader">Loading...</div>');
+    }
+    removeSpinner() {
+        const spinner = this._parentElement.querySelector('.main__loader');
+        spinner.remove();
+    }
+    renderError(msg = this._errorMessage) {
+        const htmlError = `\n    <div class="main__error-box">\n    <h2 class="main__error-title">Error</h2>\n    <p class="main__error-desc">\n     ${msg}\n    </p>\n  </div>`;
+        this._parentElement.insertAdjacentHTML('beforeend', htmlError);
+    }
+    removeError() {
+        const errorElement = this._parentElement.querySelector('.main__error-box');
+        errorElement.remove();
+    }
+}
+exports.default = View;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}],"cOp1n":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+class GameView extends _viewDefault.default {
     _parentElement = document.querySelector('.main');
     _colorsArray = [
         'one',
@@ -630,6 +686,7 @@ class GameView {
     _clickedAnswer;
     render(data) {
         this._data = data;
+        console.log(this._data);
         this._parentElement.innerHTML = '';
         this._parentElement.insertAdjacentHTML('afterbegin', this._generateMarkup());
     }
@@ -645,7 +702,7 @@ class GameView {
         // Randomize colors
         this._shuffleArray(this._colorsArray);
         const answers = Object.entries(this._data.questionData[this._data.currentQuestion - 1].answers);
-        const baseHTML = `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">\n      ${this._data.questionData[this._data.currentQuestion - 1].question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}\n      </p>\n    </div>\n    <div class="main__answers-box">\n   `;
+        const baseHTML = `	<div class="main__game-box">\n    <button class="main__btn-back btn">\n      <i class="icofont-caret-left main__back-icon"></i>\n    </button>\n    <p class="main__category">${this._data.category === 'code' ? 'programming' : this._data.category}</p>\n    <p class="main__stats">${this._data.currentQuestion} of ${this._data.questionAmount}</p>\n    <div class="main__question-box">\n      <p class="main__question">\n      ${this._data.questionData[this._data.currentQuestion - 1].question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}\n      </p>\n    </div>\n    ${this._data.questionData[this._data.currentQuestion - 1].multiple_correct_answers === 'true' ? `<div class="main__flag-box">\n    <div class="main__flag-multi">\n      <i class="icofont-layers main__flag-icon"></i>\n      <p class="main__flag-desc">Multiple answers</p>\n    </div>\n    <button class="btn main__btn-check">check</button>\n  </div>` : ''}\n    <div class="main__answers-box">\n   `;
         let answerHTML = ``;
         answers.forEach((el, i)=>{
             answerHTML += this._generateAnswerMarkup(el, i);
@@ -659,50 +716,117 @@ class GameView {
         return `\n      <div class="main__option main__option--${this._colorsArray[index]}" data-ans="${ansOption}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer">${answer[1].replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>\n      </div>`;
     }
     setAnswersColor(correctData) {
-        const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
         const answers = document.querySelectorAll('.main__option');
         answers.forEach((el)=>el.classList.add('wrong')
         );
-        correctEl.classList.remove('wrong');
-        correctEl.classList.add('correct');
+        correctData.forEach((el)=>{
+            const correctEl = document.querySelector(`[data-ans="${el}"]`);
+            correctEl.classList.remove('wrong');
+            correctEl.classList.add('correct');
+        });
+    }
+    toggleSelectedClass(correctData) {
+        const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
+        correctEl.classList.toggle('selected');
+    }
+    addHandlerButton(handler) {
+        if (this._data.questionData[this._data.currentQuestion - 1].multiple_correct_answers === 'true') {
+            const btn = document.querySelector('.main__btn-check');
+            btn.addEventListener('click', handler);
+        }
     }
     addHanlderBack(handler) {
         const btnBack = document.querySelector('.main__btn-back ');
         btnBack.addEventListener('click', handler);
     }
-    addHandlerAnswer(handler) {
+    addHandlerAnswer(handlerSingle, handlerMulti) {
         const answerBox = document.querySelector('.main__answers-box');
+        const that = this;
         answerBox.addEventListener('click', function(e) {
             const answer = e.target.closest('.main__option');
-            this._clickedAnswer = answer;
+            that._clickedAnswer = answer;
             if (!answer) return;
-            handler(answer.dataset.ans);
-            // Way to delete event listener
-            answerBox.replaceWith(answerBox.cloneNode(true));
+            if (that._data.questionData[that._data.currentQuestion - 1].multiple_correct_answers === 'true') handlerMulti(answer.dataset.ans);
+            else {
+                handlerSingle([
+                    answer.dataset.ans
+                ]);
+                // Way to delete event listener
+                answerBox.replaceWith(answerBox.cloneNode(true));
+            }
         });
     }
 }
 exports.default = new GameView();
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}],"7gFI5":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./view":"5ALGj"}],"7gFI5":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "gameState", ()=>gameState
 );
+parcelHelpers.export(exports, "testOBJ", ()=>testOBJ
+);
+parcelHelpers.export(exports, "resetGameState", ()=>resetGameState
+);
 parcelHelpers.export(exports, "getData", ()=>getData
 );
 var _config = require("./config");
+var _helpers = require("./helpers");
 const gameState = {
     difficulty: 'easy',
     category: 'linux',
     questionAmount: 1,
-    currentQuestion: 1
+    currentQuestion: 1,
+    correctAnsCounter: 0,
+    selectedAnswers: []
+};
+const testOBJ = {
+    id: 1078,
+    question: 'If you see a directory with the following permissions `drwxrwxrxt`, would you be able to remove it?',
+    description: null,
+    answers: {
+        answer_a: 'Only the owner of the folder can remove this folder',
+        answer_b: 'Yes, we can remove it from any user',
+        answer_c: 'We can remove it with the root user',
+        answer_d: 'We can remove it only using the root user',
+        answer_e: "No, this folder can't be remove.",
+        answer_f: null
+    },
+    multiple_correct_answers: 'true',
+    correct_answers: {
+        answer_a_correct: 'true',
+        answer_b_correct: 'false',
+        answer_c_correct: 'true',
+        answer_d_correct: 'false',
+        answer_e_correct: 'false',
+        answer_f_correct: 'false'
+    },
+    correct_answer: null,
+    explanation: null,
+    tip: null,
+    tags: [
+        {
+            name: 'Linux'
+        }, 
+    ],
+    category: 'Linux',
+    difficulty: 'Easy'
+};
+const resetGameState = ()=>{
+    gameState.currentQuestion = 1;
+    gameState.questionAmount = 1;
+    gameState.category = 'linux';
+    gameState.difficulty = 'easy';
+    gameState.correctAnsCounter = 0;
 };
 const getData = async function() {
     try {
-        const res = await fetch(`${_config.URL}?apiKey=${_config.API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`);
-        console.log(`${_config.URL}?apiKey=${_config.API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`);
+        const res = await Promise.race([
+            fetch(`${_config.URL}?apiKey=${_config.API_KEY}&difficulty=${gameState.difficulty}&category=${gameState.category}&limit=${gameState.questionAmount}`),
+            _helpers.timeout(_config.TIMEOUT_MS), 
+        ]);
         const data = await res.json();
+        console.log(data);
         gameState.questionData = data;
         return res;
     } catch (err) {
@@ -710,7 +834,7 @@ const getData = async function() {
     }
 };
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./config":"kjqCk"}],"kjqCk":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc","./config":"kjqCk","./helpers":"e6FKD"}],"kjqCk":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "API_KEY", ()=>API_KEY
@@ -719,10 +843,87 @@ parcelHelpers.export(exports, "URL", ()=>URL1
 );
 parcelHelpers.export(exports, "TIME_TO_NEXT_QUESTION", ()=>TIME_TO_NEXT_QUESTION
 );
+parcelHelpers.export(exports, "TIMEOUT_MS", ()=>TIMEOUT_MS
+);
 const API_KEY = 'LNXxGa78iJDbyQcJFpzEGX1QnsKk4xnCXuNrQRUl';
 const URL1 = 'https://quizapi.io/api/v1/questions';
 const TIME_TO_NEXT_QUESTION = 3000;
+const TIMEOUT_MS = 10000;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}]},["QbuC7","bJleg"], "bJleg", "parcelRequiree238")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}],"e6FKD":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "wait", ()=>wait
+);
+parcelHelpers.export(exports, "timeout", ()=>timeout
+);
+const wait = async function(ms) {
+    return new Promise((resolve)=>{
+        setTimeout(resolve, ms);
+    });
+};
+const timeout = async function(ms) {
+    return new Promise((_, reject)=>{
+        setTimeout(function() {
+            reject(new Error(`Request took too long! Timeout after ${ms / 1000} seconds`));
+        }, ms);
+    });
+};
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}],"ceKVf":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+class ResultView extends _viewDefault.default {
+    _parentElement = document.querySelector('.main');
+    _data;
+    render(data) {
+        this._data = data;
+        this._parentElement.innerHTML = '';
+        this._parentElement.insertAdjacentHTML('beforeend', this._generateMarkup());
+    }
+    _generateMarkup() {
+        let html = `\n    	<div class="main__result-box">\n          <button class="main__btn-back btn">\n            <i class="icofont-caret-left main__back-icon"></i>\n          </button>\n          <h2 class="main__result-title">${this._data.correctAnsCounter} CORRECT ANSWERS</h2>\n       `;
+        for(let i = 0; i < this._data.questionAmount; i++)html += this._generateQuestion(i);
+        html += '</div>';
+        return html;
+    }
+    _generateQuestion(index) {
+        const playerAnswer = this._data.questionData[index].playerAnswer;
+        const correctAnswers = Object.entries(this._data.questionData[index].correct_answers);
+        let baseHtml = `\n    <div class="main__question-box main__question-box--small">\n      <p class="main__question main__question--small">${this._data.questionData[index].question}</p>\n    </div>\n    <div class="main__answers-box main__answers-box--small">\n      \n      \n      `;
+        let playerHtml = '<p class ="main__result-correct"> Your answer: </p>';
+        let gameAnsHtml = '';
+        playerAnswer.forEach((el)=>{
+            const category = el.slice(-1).toUpperCase();
+            const answerText = this._data.questionData[index].answers[el];
+            const playerCorrect = this._data.questionData[index].correct;
+            playerHtml += this._generateAnswerMarkup(answerText, category, playerCorrect);
+        });
+        baseHtml += playerHtml;
+        baseHtml += '<p class ="main__result-correct"> Answer: </p>';
+        correctAnswers.forEach((el)=>{
+            if (el[1] === 'true') {
+                const answerTag = el[0].slice(0, 8);
+                const category = answerTag.slice(-1).toUpperCase();
+                const answerText = this._data.questionData[index].answers[answerTag];
+                gameAnsHtml += this._generateAnswerMarkup(answerText, category, true);
+            }
+        });
+        baseHtml += `${gameAnsHtml}</div>`;
+        return baseHtml;
+    }
+    _generateAnswerMarkup(answer, ansOption, playerCorrect, correctAns = false) {
+        return `\n      <div class="main__option main__option--small ${playerCorrect || correctAns ? 'correct' : 'wrong'}" data-ans="${ansOption}">\n        <span class="main__answer-opt"> ${ansOption}.</span>\n        <span class="main__answer">${answer.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>\n      </div>`;
+    }
+    addHanlderBack(handler) {
+        const btnBack = document.querySelector('.main__btn-back ');
+        btnBack.addEventListener('click', handler);
+    }
+}
+exports.default = new ResultView();
+
+},{"./view":"5ALGj","@parcel/transformer-js/src/esmodule-helpers.js":"JacNc"}]},["QbuC7","bJleg"], "bJleg", "parcelRequiree238")
 
 //# sourceMappingURL=index.232cc9d8.js.map

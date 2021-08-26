@@ -1,4 +1,6 @@
-class GameView {
+import View from './view';
+
+class GameView extends View {
 	_parentElement = document.querySelector('.main');
 	_colorsArray = ['one', 'two', 'three', 'four', 'five', 'six', 'seven'];
 	_data;
@@ -6,6 +8,7 @@ class GameView {
 
 	render(data) {
 		this._data = data;
+		console.log(this._data);
 		this._parentElement.innerHTML = '';
 		this._parentElement.insertAdjacentHTML(
 			'afterbegin',
@@ -34,7 +37,9 @@ class GameView {
     <button class="main__btn-back btn">
       <i class="icofont-caret-left main__back-icon"></i>
     </button>
-    <p class="main__category">${this._data.category}</p>
+    <p class="main__category">${
+			this._data.category === 'code' ? 'programming' : this._data.category
+		}</p>
     <p class="main__stats">${this._data.currentQuestion} of ${
 			this._data.questionAmount
 		}</p>
@@ -45,6 +50,18 @@ class GameView {
 				.replace(/>/g, '&gt;')}
       </p>
     </div>
+    ${
+			this._data.questionData[this._data.currentQuestion - 1]
+				.multiple_correct_answers === 'true'
+				? `<div class="main__flag-box">
+    <div class="main__flag-multi">
+      <i class="icofont-layers main__flag-icon"></i>
+      <p class="main__flag-desc">Multiple answers</p>
+    </div>
+    <button class="btn main__btn-check">check</button>
+  </div>`
+				: ''
+		}
     <div class="main__answers-box">
    `;
 
@@ -76,12 +93,29 @@ class GameView {
 	}
 
 	setAnswersColor(correctData) {
-		const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
 		const answers = document.querySelectorAll('.main__option');
-
 		answers.forEach((el) => el.classList.add('wrong'));
-		correctEl.classList.remove('wrong');
-		correctEl.classList.add('correct');
+
+		correctData.forEach((el) => {
+			const correctEl = document.querySelector(`[data-ans="${el}"]`);
+			correctEl.classList.remove('wrong');
+			correctEl.classList.add('correct');
+		});
+	}
+
+	toggleSelectedClass(correctData) {
+		const correctEl = document.querySelector(`[data-ans="${correctData}"]`);
+		correctEl.classList.toggle('selected');
+	}
+
+	addHandlerButton(handler) {
+		if (
+			this._data.questionData[this._data.currentQuestion - 1]
+				.multiple_correct_answers === 'true'
+		) {
+			const btn = document.querySelector('.main__btn-check');
+			btn.addEventListener('click', handler);
+		}
 	}
 
 	addHanlderBack(handler) {
@@ -89,19 +123,28 @@ class GameView {
 		btnBack.addEventListener('click', handler);
 	}
 
-	addHandlerAnswer(handler) {
+	addHandlerAnswer(handlerSingle, handlerMulti) {
 		const answerBox = document.querySelector('.main__answers-box');
+
+		const that = this;
 
 		answerBox.addEventListener('click', function (e) {
 			const answer = e.target.closest('.main__option');
-			this._clickedAnswer = answer;
+			that._clickedAnswer = answer;
 
 			if (!answer) return;
 
-			handler(answer.dataset.ans);
+			if (
+				that._data.questionData[that._data.currentQuestion - 1]
+					.multiple_correct_answers === 'true'
+			)
+				handlerMulti(answer.dataset.ans);
+			else {
+				handlerSingle([answer.dataset.ans]);
 
-			// Way to delete event listener
-			answerBox.replaceWith(answerBox.cloneNode(true));
+				// Way to delete event listener
+				answerBox.replaceWith(answerBox.cloneNode(true));
+			}
 		});
 	}
 }

@@ -1,4 +1,6 @@
-class MainView {
+import View from './view';
+
+class MainView extends View {
 	_parentElement = document.querySelector('.main');
 	_categoryList = document.querySelectorAll('.main__item');
 	_categoryParent = document.querySelector('.main__cat-list');
@@ -12,11 +14,6 @@ class MainView {
 		this._categoryParent = document.querySelector('.main__cat-list');
 	}
 
-	_renderError() {
-		// Temp error;
-		console.log(this._errorMessage);
-	}
-
 	_generateMarkup() {
 		const html = `<div class="main__category-box">
     <h2 class="main__category-title">Chose category</h2>
@@ -27,7 +24,7 @@ class MainView {
           <p class="main__item-title">Linux</p>
         </div>
       </li>
-      <li class="main__item" data-cat="programming">
+      <li class="main__item" data-cat="code">
         <div class="main__item-box">
           <i class="icofont-code-alt main__item-img"></i>
           <p class="main__item-title">Programming</p>
@@ -39,11 +36,11 @@ class MainView {
           <p class="main__item-title">DevOps</p>
         </div>
       </li>
-      <li class="main__item" data-cat="networking">
+      <li class="main__item" data-cat="sql">
         <div class="main__item-box">
-          <i class="icofont-network main__item-img"></i>
+          <i class="icofont-database main__item-img"></i>
 
-          <p class="main__item-title">Networing</p>
+          <p class="main__item-title">SQL</p>
         </div>
       </li>
       <li class="main__item" data-cat="docker">
