@@ -485,9 +485,9 @@ const controlStart = async (questionAmount)=>{
         _modelJs.gameState.questionAmount = questionAmount;
         // LOAD SPINNER
         _mainViewJsDefault.default.renderSpinner();
-        // const { ok: status } = await getData();
-        // if (!status) throw new Error('Cannot load questions from server');
-        _modelJs.gameState.questionData = [_modelJs.testOBJ];
+        const { ok: status  } = await _modelJs.getData();
+        if (!status) throw new Error('Cannot load questions from server');
+        // gameState.questionData = [testOBJ];
         _gameViewJsDefault.default.render(_modelJs.gameState);
         refreshGameHandler();
     } catch (err) {

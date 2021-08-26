@@ -35,9 +35,9 @@ const controlStart = async (questionAmount) => {
 		// LOAD SPINNER
 		mainView.renderSpinner();
 
-		// const { ok: status } = await getData();
-		// if (!status) throw new Error('Cannot load questions from server');
-		gameState.questionData = [testOBJ];
+		const { ok: status } = await getData();
+		if (!status) throw new Error('Cannot load questions from server');
+		// gameState.questionData = [testOBJ];
 
 		gameView.render(gameState);
 
