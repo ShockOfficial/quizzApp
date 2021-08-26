@@ -8,7 +8,6 @@ class GameView extends View {
 
 	render(data) {
 		this._data = data;
-		console.log(this._data);
 		this._parentElement.innerHTML = '';
 		this._parentElement.insertAdjacentHTML(
 			'afterbegin',
