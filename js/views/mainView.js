@@ -61,6 +61,7 @@ class MainView extends View {
       type="number"
       id="quantity"
       name="quantity"
+      value="1"
       min="1"
       max="25"
     />
