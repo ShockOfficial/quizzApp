@@ -11,4 +11,5 @@ The project is waiting for redesign because i don't like current.
 - OOP
 - modules
 - Sass
+<br>
 live demo 🔴: https://shock-quizz.netlify.app/
