@@ -9,43 +9,6 @@ export const gameState = {
 	correctAnsCounter: 0,
 	selectedAnswers: [],
 };
-/////
-
-export const testOBJ = {
-	id: 1078,
-	question:
-		'If you see a directory with the following permissions `drwxrwxrxt`, would you be able to remove it?',
-	description: null,
-	answers: {
-		answer_a: 'Only the owner of the folder can remove this folder',
-		answer_b: 'Yes, we can remove it from any user',
-		answer_c: 'We can remove it with the root user',
-		answer_d: 'We can remove it only using the root user',
-		answer_e: "No, this folder can't be remove.",
-		answer_f: null,
-	},
-	multiple_correct_answers: 'true',
-	correct_answers: {
-		answer_a_correct: 'true',
-		answer_b_correct: 'false',
-		answer_c_correct: 'true',
-		answer_d_correct: 'false',
-		answer_e_correct: 'false',
-		answer_f_correct: 'false',
-	},
-	correct_answer: null,
-	explanation: null,
-	tip: null,
-	tags: [
-		{
-			name: 'Linux',
-		},
-	],
-	category: 'Linux',
-	difficulty: 'Easy',
-};
-
-///
 
 export const resetGameState = () => {
 	gameState.currentQuestion = 1;
@@ -53,6 +16,26 @@ export const resetGameState = () => {
 	gameState.category = 'linux';
 	gameState.difficulty = 'easy';
 	gameState.correctAnsCounter = 0;
+};
+
+const checkCorrectness = (data) => {
+	let flag = false;
+	data.forEach((questionData, index) => {
+		let counter = 0;
+		Object.values(questionData.correct_answers).forEach((el) => {
+			if (el === 'true') counter++;
+		});
+
+		if (
+			(counter > 1 && questionData.multiple_correct_answers === 'false') ||
+			(counter === 1 && questionData.multiple_correct_answers === 'true') ||
+			counter === 0
+		) {
+			flag = true;
+			data.splice(index, 1);
+		}
+	});
+	return { data, flag };
 };
 
 export const getData = async function () {
@@ -64,9 +47,12 @@ export const getData = async function () {
 			timeout(TIMEOUT_MS),
 		]);
 
-		const data = await res.json();
-		console.log(data);
+		const uncheckedData = await res.json();
+		const { data, flag } = checkCorrectness(uncheckedData);
+
 		gameState.questionData = data;
+		gameState.flag = flag;
+
 		return res;
 	} catch (err) {
 		throw err;

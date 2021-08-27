@@ -429,6 +429,21 @@ body {
 		border-radius: 1rem;
 	}
 
+	&__error-top {
+		position: relative;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	&__error-exit {
+		position: absolute;
+		right: -5%;
+		top: -45%;
+		padding: 1rem;
+		padding-bottom: 0;
+	}
+
 	&__error-title {
 		position: relative;
 		text-transform: uppercase;
@@ -444,7 +459,7 @@ body {
 			display: block;
 			font-size: 8rem;
 			position: absolute;
-			left: -12%;
+			left: -45%;
 			top: -310%;
 			transform: rotate(-25deg);
 		}

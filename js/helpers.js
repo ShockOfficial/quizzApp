@@ -1,7 +1,16 @@
 export const wait = async function (ms) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
+	let timeoutId;
+
+	const waitPromise = new Promise((resolve) => {
+		timeoutId = setTimeout(() => {
+			resolve();
+		}, ms);
 	});
+
+	return {
+		promise: Promise.race([waitPromise]),
+		timeoutId,
+	};
 };
 
 export const timeout = async function (ms) {

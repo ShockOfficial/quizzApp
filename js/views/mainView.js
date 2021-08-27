@@ -90,13 +90,7 @@ class MainView extends View {
 		form.addEventListener('submit', (e) => {
 			e.preventDefault();
 			const input = e.target.querySelector('.main__input');
-
-			if (!input.value) {
-				this._renderError();
-				return;
-			}
-
-			handler(input.value);
+			handler(input);
 		});
 	}
 }

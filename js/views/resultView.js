@@ -50,10 +50,20 @@ class ResultView extends View {
 			const category = el.slice(-1).toUpperCase();
 			const answerText = this._data.questionData[index].answers[el];
 			const playerCorrect = this._data.questionData[index].correct;
+
+			const correctAnsTag = [];
+			correctAnswers.forEach((el) => {
+				if (el[1] === 'true') {
+					correctAnsTag.push(el[0].slice(7, 8).toUpperCase());
+				}
+			});
+
 			playerHtml += this._generateAnswerMarkup(
 				answerText,
 				category,
 				playerCorrect,
+				false,
+				correctAnsTag,
 			);
 		});
 
@@ -75,10 +85,18 @@ class ResultView extends View {
 		return baseHtml;
 	}
 
-	_generateAnswerMarkup(answer, ansOption, playerCorrect, correctAns = false) {
+	_generateAnswerMarkup(
+		answer,
+		ansOption,
+		playerCorrect,
+		correctAns = false,
+		correctAnsArr,
+	) {
 		return `
       <div class="main__option main__option--small ${
-				playerCorrect || correctAns ? 'correct' : 'wrong'
+				playerCorrect || correctAns || correctAnsArr.includes(ansOption)
+					? 'correct'
+					: 'wrong'
 			}" data-ans="${ansOption}">
         <span class="main__answer-opt"> ${ansOption}.</span>
         <span class="main__answer">${answer

@@ -5,13 +5,6 @@ import { gameState, getData, resetGameState } from './model.js';
 import { TIME_TO_NEXT_QUESTION } from './config.js';
 import { wait } from './helpers.js';
 
-import { testOBJ } from './model.js';
-// https://quizapi.io/docs/1.0/overview#request-parameters
-
-// if (module.hot) {
-// 	module.hot.accept();
-// }
-
 const controlActive = (e, categoryList, categoryParent) => {
 	const cat = e.target.closest('.main__item');
 
@@ -28,30 +21,45 @@ const controlActive = (e, categoryList, categoryParent) => {
 	gameState.category = cat.dataset.cat;
 };
 
-const controlStart = async (questionAmount) => {
+const controlStart = async (input) => {
 	try {
-		gameState.questionAmount = questionAmount;
+		if (!input.value) {
+			throw new Error('You must enter number of questions!');
+		}
+
+		gameState.questionAmount = input.value;
 
 		// LOAD SPINNER
 		mainView.renderSpinner();
+		gameState.isSpinnerDisplay = true;
 
 		const { ok: status } = await getData();
 		if (!status) throw new Error('Cannot load questions from server');
-		// gameState.questionData = [testOBJ];
 
+		// Override  the question amount in case of data error.
+		gameState.questionAmount = gameState.questionData.length;
 		gameView.render(gameState);
+
+		// If some data are broken flag is true and we'll get warrning mess
+		if (gameState.flag) {
+			gameView.renderError(
+				'Some of the downloaded questions are broken. We have ignored them.',
+				'Warrning',
+			);
+		}
 
 		refreshGameHandler();
 	} catch (err) {
-		mainView.removeSpinner();
+		if (gameState.isSpinnerDisplay) {
+			mainView.removeSpinner();
+			gameState.isSpinnerDisplay = false;
+		}
 		mainView.renderError(err.message);
-
-		await wait(4000);
-		mainView.removeError();
 	}
 };
 
 const controlBack = () => {
+	clearTimeout(gameState.timeoutId);
 	resetGameState();
 	mainView.render();
 	init();
@@ -116,7 +124,11 @@ const controllAnswer = async (clickedAnswer, multi = false) => {
 
 	// Wait and reneder another question.
 	if (gameState.currentQuestion <= gameState.questionAmount) {
-		await wait(TIME_TO_NEXT_QUESTION);
+		const { promise, timeoutId } = await wait(TIME_TO_NEXT_QUESTION);
+
+		gameState.timeoutId = timeoutId;
+		await promise;
+
 		gameView.render(gameState);
 		refreshGameHandler();
 	} else {
