@@ -16,7 +16,7 @@ class MainView extends View {
 
 	_generateMarkup() {
 		const html = `<div class="main__category-box">
-    <h2 class="main__category-title">Chose category</h2>
+    <h2 class="main__category-title">Choose category</h2>
     <ul class="main__cat-list">
       <li class="main__item active" data-cat="linux">
         <div class="main__item-box">
